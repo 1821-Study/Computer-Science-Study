@@ -1,3 +1,0 @@
-# JPA Persistence API
-
-📅 
