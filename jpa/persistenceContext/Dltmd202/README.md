@@ -466,12 +466,117 @@ List<Member> members = em.createQuery("select m from Member m", Member.class)
 * `em.clear()`: 영속성 컨텍스트를 완전히 초기화한다.
 * `em.close()`: 영속성 컨텍스트를 종료한다.
 
-### 엔티티를 전영속 상태로 전환 (`detach()`)
+### 엔티티를 준영속 상태로 전환 (`detach()`)
 
 `em.detach()` 메서드는 특정 엔티티를 준영속 상태로 만든다.
 
 ```java
 public void testDetached(){
+    Member member = new Member();
+    member.setId("memberA");
+    member.setUsername("회원A");
+    
+    //회원 엔티티 영속 상태
+    em.persist(member);
         
+    //회원 엔티티를 영속성 컨텍스트에서 분리, 준영속 상태
+    em.detach(member);
 }
 ```
+
+* 영속성 컨텍스트에게 더는 해당 엔티티를 관리하지 말라는 것이다.
+* 1차 캐시와 쓰기 지연 SQL 저장소까지 해당 엔티티를 관리하기 위한 모든 정보가 제거된다.
+* 영속 상태였다가 더는 영속성 컨텍스트가 관리하지 않는 상태를 준영속 상태라 한다.
+
+### 영속성 컨텍스트 초기화(`clear()`)
+
+```java
+Member member = em.find(Member.class, "memberA");
+em.clear();
+
+member.setUsername("changeName");
+```
+
+* `em.clear()`를 통해 영속성 컨텍스트의 모든 엔티티를 초기화 함
+* `member` 엔티티는 준영속 상태가 됨
+* `member.setUsername("changeName");` 이렇게 상태를 변경시켜도 변경 감지가 작동하지 않음
+
+### 영속성 컨텍스트 종료(`close()`)
+
+```java
+public void closeEntityManage(){
+    EntitiyManager em = emf.createEntityManager();
+    EntityTransaction tx = em.getTransaction();
+    
+    tx.begin();
+    
+    Member memberA = em.find(Member.class, "memberA");
+    Member memberB = em.find(Member.class, "memberB");
+    
+    tx.commit();
+    
+    em.close();
+}
+```
+
+* 영속성 컨텍스트가 종료되어 `memberA`, `memberB`는 영속성 컨텍스트가 관리하지 못 한다.
+
+> 참고
+> 
+> 영속 상태의 엔티티는 주로 영속성 컨텍스트가 종료되면서 준영속 상태가 된다. 개발자가 직접 준영속 상태로 만드는 일은 드물다.
+
+### 준영속 상태의 특징
+
+#### 거의 비영속 상태에 가깝다.
+
+영속성 컨텍스트가 관리하지 않으므로 1차 캐시, 쓰기 지연, 변경 감지, 지연 로딩을 포함한 영속성 컨텍스트가 제공하는 어떠한 기능도 동작하지 않는다.
+
+#### 식별자 값을 가지고 있다.
+
+비영속 상태는 식별자 값이 없을 수도 있지만 준영속 상태는 이미 한 번 영속 상태였으므로 반드시 식별자 값을 가지고 있다.
+
+#### 지연 로딩을 할 수 없다.
+
+지연 로딩은 실제 객체 대신 프록시 객체를 로딩해두고 해당 객체를 실제 사용할 때 영속성 컨텍스트를 통해 데이터를 불러오는 방법이다.
+준영속 상태는 영속성 컨텍스트가 더는 관리하지 않음으로 지연 로딩 시 문제가 발생한다.
+
+
+### 병합(`merge()`)
+
+> 준영속 상태의 엔티티를 받아서 그 정보로 새로운 영속 상태의 엔티티를 반환한다.
+
+#### merge() 
+```java
+public <T> T merge(T entity);
+```
+
+#### 준영속 병합
+
+```java
+public void mergeMember(Member member){
+    EntityManager em = emf.getEntityManager();
+    EntityTransaction tx = em.getTransction();
+    
+    tx.begin();
+    Member mergeMember = em.merge(member);
+    tx.commit();
+    
+    System.out.println("em contains member = " + em.contains(member));
+    // em contains member = false
+
+    System.out.println("em contains mergeMember = " + em.contains(mergeMember));
+    // em contains mergeMember = true
+    
+    em.close
+}
+```
+
+#### 비영속 병합
+
+```java
+Member member = new Member();
+Member newMember = em.merge(member);
+tx.commit();
+```
+
+* 비영속 엔티티도 병합을 할 수 있다.
