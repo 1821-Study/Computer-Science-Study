@@ -128,3 +128,20 @@
     ```
 
     - **O(2n)**
+    ```java
+    public class Main {
+        static int n;
+    
+        public static void main(String[] args)  {
+            n = 40;
+            fibo(n);
+        }
+    
+        static int fibo(int n) {
+            if (n <= 1) {
+                return 1;
+            }
+            return fibo(n-1) + fibo(n-2);
+        }
+    }
+    ```
